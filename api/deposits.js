@@ -12,17 +12,13 @@ module.exports = async (req, res) => {
       const id = newId(), created_at = isoNow();
       let created = false;
       await rootTransaction(root => {
-        root = root || {};
-        root.deposits = root.deposits || {};
-        root.transactionIds = root.transactionIds || {};
+        root = root || {}; root.deposits = root.deposits || {}; root.transactionIds = root.transactionIds || {};
         const transactionKey = Buffer.from(transaction_id.toLowerCase()).toString('base64url');
         if (root.transactionIds[transactionKey]) return;
         root.deposits[id] = { id, user_id: user.id, amount, transaction_id, status: 'pending', created_at, reviewed_at: null, admin_note: '' };
         root.transactionIds[transactionKey] = id;
-        root.wallets = root.wallets || {};
-        root.wallets[user.id] = root.wallets[user.id] || { balance: 0 };
-        created = true;
-        return root;
+        root.wallets = root.wallets || {}; root.wallets[user.id] = root.wallets[user.id] || { balance: 0 };
+        created = true; return root;
       });
       if (!created) return res.status(409).json({ error: 'This transaction ID has already been submitted.' });
       return res.status(201).json({ ok: true, deposit: { id, user_id: user.id, amount, transaction_id, status: 'pending', created_at }, message: 'Request submitted. Wallet updates only after admin verifies payment.' });
@@ -33,9 +29,6 @@ module.exports = async (req, res) => {
       const deposits = Object.values(root.deposits || {}).filter(x => x.user_id === user.id).sort((a,b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0,50);
       return res.status(200).json({ balance: Number(wallet.balance || 0), deposits });
     }
-    res.setHeader('Allow', 'GET, POST');
-    return res.status(405).json({ error: 'Use GET or POST' });
-  } catch (e) {
-    return res.status(500).json({ error: e.message || 'Deposit request failed.' });
-  }
+    res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'Use GET or POST' });
+  } catch (e) { return res.status(500).json({ error: e.message || 'Deposit request failed.' }); }
 };
