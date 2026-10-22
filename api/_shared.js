@@ -34,7 +34,7 @@ function signAdmin() {
 }
 function isAdmin(req) {
   try {
-    const token = (req.headers.authorization || '').replace(/^Bearer\\s+/, '');
+    const token = (req.headers.authorization || '').replace(/^Bearer\s+/, '');
     const [p, s] = token.split('.');
     if (!p || !s || !process.env.ADMIN_SESSION_SECRET) return false;
     const want = crypto.createHmac('sha256', process.env.ADMIN_SESSION_SECRET).update(p).digest();
