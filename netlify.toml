@@ -1,0 +1,37 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/login.html"
+  status = 200
+[[redirects]]
+  from = "/signup"
+  to = "/signup.html"
+  status = 200
+[[redirects]]
+  from = "/services"
+  to = "/services.html"
+  status = 200
+[[redirects]]
+  from = "/dashboard"
+  to = "/dashboard.html"
+  status = 200
+[[redirects]]
+  from = "/api-docs"
+  to = "/api-docs.html"
+  status = 200
+[[redirects]]
+  from = "/resetpassword"
+  to = "/resetpassword.html"
+  status = 200
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
