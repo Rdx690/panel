@@ -1,6 +1,55 @@
-const crypto=require('crypto');const BASE=()=>String(process.env.SUPABASE_URL||'').replace(/\/$/,'');const KEY=()=>process.env.SUPABASE_SERVICE_ROLE_KEY||'';
-async function db(path,options={}){if(!BASE()||!KEY())throw Error('Database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');const r=await fetch(`${BASE()}/rest/v1/${path}`,{...options,headers:{apikey:KEY(),Authorization:`Bearer ${KEY()}`,'Content-Type':'application/json',...(options.headers||{})}});const txt=await r.text();let data;try{data=txt?JSON.parse(txt):null}catch{data=txt}if(!r.ok)throw Error((data&&data.message)||'Database request failed');return data}
-async function userFromReq(req){const auth=req.headers.authorization||'';if(!auth.startsWith('Bearer '))return null;const token=auth.slice(7);if(!BASE()||!process.env.SUPABASE_ANON_KEY)throw Error('Auth is not configured.');const r=await fetch(`${BASE()}/auth/v1/user`,{headers:{apikey:process.env.SUPABASE_ANON_KEY,Authorization:`Bearer ${token}`}});if(!r.ok)return null;return r.json()}
-function signAdmin(){if(!process.env.ADMIN_SESSION_SECRET)throw Error('Admin session secret is not configured.');const payload=Buffer.from(JSON.stringify({role:'admin',exp:Date.now()+8*60*60*1000})).toString('base64url');const sig=crypto.createHmac('sha256',process.env.ADMIN_SESSION_SECRET).update(payload).digest('base64url');return `${payload}.${sig}`}
-function isAdmin(req){try{const token=(req.headers.authorization||'').replace(/^Bearer\s+/,'');const [p,s]=token.split('.');if(!p||!s||!process.env.ADMIN_SESSION_SECRET)return false;const want=crypto.createHmac('sha256',process.env.ADMIN_SESSION_SECRET).update(p).digest();const got=Buffer.from(s,'base64url');if(got.length!==want.length||!crypto.timingSafeEqual(got,want))return false;const x=JSON.parse(Buffer.from(p,'base64url').toString());return x.role==='admin'&&x.exp>Date.now()}catch{return false}}
-module.exports={db,userFromReq,signAdmin,isAdmin};
+const crypto = require('crypto');
+const admin = require('firebase-admin');
+
+function firebase() {
+  if (admin.apps.length) return admin;
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  const databaseURL = process.env.FIREBASE_DATABASE_URL;
+  if (!raw || !databaseURL) {
+    throw new Error('Firebase server is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_DATABASE_URL in Vercel.');
+  }
+  let serviceAccount;
+  try { serviceAccount = JSON.parse(raw); }
+  catch { throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.'); }
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL
+  });
+  return admin;
+}
+function database() { return firebase().database(); }
+async function userFromReq(req) {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return null;
+  try {
+    const decoded = await firebase().auth().verifyIdToken(auth.slice(7));
+    return { id: decoded.uid, uid: decoded.uid, email: decoded.email || '' };
+  } catch { return null; }
+}
+function signAdmin() {
+  if (!process.env.ADMIN_SESSION_SECRET) throw new Error('Admin session secret is not configured.');
+  const payload = Buffer.from(JSON.stringify({ role: 'admin', exp: Date.now() + 8 * 60 * 60 * 1000 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', process.env.ADMIN_SESSION_SECRET).update(payload).digest('base64url');
+  return payload + '.' + sig;
+}
+function isAdmin(req) {
+  try {
+    const token = (req.headers.authorization || '').replace(/^Bearer\\s+/, '');
+    const [p, s] = token.split('.');
+    if (!p || !s || !process.env.ADMIN_SESSION_SECRET) return false;
+    const want = crypto.createHmac('sha256', process.env.ADMIN_SESSION_SECRET).update(p).digest();
+    const got = Buffer.from(s, 'base64url');
+    if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) return false;
+    const payload = JSON.parse(Buffer.from(p, 'base64url').toString());
+    return payload.role === 'admin' && payload.exp > Date.now();
+  } catch { return false; }
+}
+function newId() { return crypto.randomUUID(); }
+function isoNow() { return new Date().toISOString(); }
+async function rootTransaction(updater) {
+  const ref = database().ref('/');
+  const result = await ref.transaction(current => updater(current || {}), undefined, false);
+  if (!result.committed) throw new Error('Database update conflicted. Please retry.');
+  return result.snapshot.val() || {};
+}
+module.exports = { firebase, database, userFromReq, signAdmin, isAdmin, newId, isoNow, rootTransaction };
