@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { isAdmin, database, rootTransaction, isoNow } = require('./_shared');
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -17,16 +18,14 @@ module.exports = async (req, res) => {
         const deposit = root.deposits?.[id];
         if (!deposit) throw new Error('Deposit not found.');
         if (deposit.status !== 'pending') throw new Error('Deposit already reviewed.');
-        deposit.status = status;
-        deposit.reviewed_at = isoNow();
-        deposit.admin_note = note;
+        deposit.status = status; deposit.reviewed_at = isoNow(); deposit.admin_note = note;
         if (status === 'approved') {
           root.wallets = root.wallets || {};
           const wallet = root.wallets[deposit.user_id] || { balance: 0 };
           wallet.balance = Math.round((Number(wallet.balance || 0) + Number(deposit.amount)) * 100) / 100;
           root.wallets[deposit.user_id] = wallet;
           root.walletTransactions = root.walletTransactions || {};
-          const txId = require('crypto').randomUUID();
+          const txId = crypto.randomUUID();
           root.walletTransactions[txId] = { id: txId, user_id: deposit.user_id, deposit_id: id, kind: 'deposit', amount: Number(deposit.amount), note: 'Admin-approved manual deposit', created_at: deposit.reviewed_at };
         }
         result = { ok: true, status, amount: deposit.amount, user_id: deposit.user_id };
@@ -34,9 +33,6 @@ module.exports = async (req, res) => {
       });
       return res.status(200).json(result);
     }
-    res.setHeader('Allow', 'GET, POST');
-    return res.status(405).json({ error: 'Use GET or POST' });
-  } catch (e) {
-    return res.status(400).json({ error: e.message || 'Admin request failed.' });
-  }
+    res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'Use GET or POST' });
+  } catch (e) { return res.status(400).json({ error: e.message || 'Admin request failed.' }); }
 };
