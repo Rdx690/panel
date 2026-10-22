@@ -2,6 +2,26 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/api/config",
+      "destination": "/api/config.js"
+    },
+    {
+      "source": "/api/deposits",
+      "destination": "/api/deposits.js"
+    },
+    {
+      "source": "/api/order",
+      "destination": "/api/order.js"
+    },
+    {
+      "source": "/api/admin-login",
+      "destination": "/api/admin-login.js"
+    },
+    {
+      "source": "/api/admin-deposits",
+      "destination": "/api/admin-deposits.js"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
