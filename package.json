@@ -1,0 +1,9 @@
+{
+  "name": "vfx-smm-panel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VFX SMM PANEL starter for Vercel",
+  "engines": {
+    "node": ">=18"
+  }
+}
