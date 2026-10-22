@@ -1,22 +1,35 @@
 # VFX SMM PANEL
 
-VFX SMM PANEL is a social media marketing panel starter for Vercel and Netlify. This repository contains VFX-branded landing, login, signup, services, dashboard, admin review, and password-reset pages, serverless API handlers, a Neon-style theme, and a Supabase SQL schema.
+VFX SMM PANEL is a Vercel-hosted starter using Firebase Authentication and Firebase Realtime Database.
 
-## Important setup before use
-1. Create a Supabase project.
-2. Run the entire `sql/schema.sql` in the Supabase SQL Editor.
-3. Add these server-side environment variables to your deployment: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, `SMM_PROVIDER_URL`, and `SMM_PROVIDER_KEY`. Optionally set `SMM_MARKUP_PERCENT` (0–500).
-4. `ADMIN_PASSWORD` must be a new, unique strong password; `ADMIN_SESSION_SECRET` must be randomly generated and at least 32 characters.
-5. Never put the service-role key, admin password, session secret, or SMM provider key into frontend code or a public repository.
-6. Test login, deposits, order charging, provider rejection/refunds, and admin approvals on a private deployment before launching.
+## Firebase setup
+1. In Firebase Console for project `sourajit-vfx`, enable **Authentication → Sign-in method → Email/Password**.
+2. Create/enable the Realtime Database at `https://sourajit-vfx-default-rtdb.firebaseio.com`.
+3. In Google Cloud Console, revoke any service-account key previously shared in chat and create a replacement key.
+4. In Vercel → Project → Settings → Environment Variables, add:
+   - `FIREBASE_DATABASE_URL` = `https://sourajit-vfx-default-rtdb.firebaseio.com`
+   - `FIREBASE_SERVICE_ACCOUNT_JSON` = the full JSON contents of the new service account key (keep private; never commit it)
+   - `ADMIN_PASSWORD` = a unique strong admin password
+   - `ADMIN_SESSION_SECRET` = a randomly generated secret of at least 32 characters
+   - `SMM_PROVIDER_URL` and `SMM_PROVIDER_KEY` = your SMM provider API settings (only if placing real orders)
+   - `SMM_MARKUP_PERCENT` = optional, 0–500
+5. Set Firebase Realtime Database rules so clients cannot read or write the wallet/deposit/order records directly. The server uses the Admin SDK, which bypasses client rules. For example, start with:
+   ```json
+   { "rules": { ".read": false, ".write": false } }
+   ```
+6. Redeploy after setting environment variables. Configure Firebase Authentication authorized domains to include the deployed Vercel domain.
 
-## Hosting
-- **Vercel:** `vercel.json` and root `api/` functions.
-- **Netlify:** `netlify.toml` and `netlify/functions/api.js` adapter.
-- **PHP shared hosting:** The source ZIP includes an alternative PHP API adapter; review and configure its private settings locally before uploading it to a PHP host. Never commit real credentials.
+## Data layout
+- `users/{uid}` can hold user profile metadata.
+- `wallets/{uid}` holds wallet balance.
+- `deposits/{depositId}` holds manual deposit requests.
+- `orders/{orderId}` holds orders.
+- `walletTransactions/{transactionId}` records wallet activity.
+- `transactionIds/{base64url(transactionId)}` prevents reusing a submitted payment reference.
 
-## Limitations
-- Supabase and SMM provider accounts/credentials are not included.
-- Manual deposits require an administrator to verify the actual payment before approving it. Automatic payment verification is not included.
-- Provider order status refresh is not automatic in this starter.
-- Social platform rules and provider terms must be followed.
+## Important behavior
+- Deposits are manual. An administrator must independently verify a payment before approval.
+- Order creation reserves wallet funds; a provider rejection refunds the reserved amount.
+- Provider order-status refresh and automatic payment verification are not included.
+- Never store Firebase service-account keys, admin passwords, session secrets, or SMM provider keys in frontend code or a public repository.
+- This repository no longer uses Supabase for its Vercel login, deposit, order, and admin APIs.
