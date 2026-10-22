@@ -48,8 +48,14 @@ function newId() { return crypto.randomUUID(); }
 function isoNow() { return new Date().toISOString(); }
 async function rootTransaction(updater) {
   const ref = database().ref('/');
-  const result = await ref.transaction(current => updater(current || {}), undefined, false);
-  if (!result.committed) throw new Error('Database update conflicted. Please retry.');
+  let aborted = false;
+  const result = await ref.transaction(current => {
+    aborted = false;
+    const next = updater(current || {});
+    if (next === undefined) { aborted = true; return; }
+    return next;
+  }, undefined, false);
+  if (!result.committed && !aborted) throw new Error('Database update conflicted. Please retry.');
   return result.snapshot.val() || {};
 }
 module.exports = { firebase, database, userFromReq, signAdmin, isAdmin, newId, isoNow, rootTransaction };
