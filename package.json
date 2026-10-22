@@ -1,9 +1,8 @@
 {
   "name": "vfx-smm-panel",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "VFX SMM PANEL starter for Vercel",
-  "engines": {
-    "node": ">=18"
-  }
+  "description": "VFX SMM PANEL using Firebase Auth and Realtime Database",
+  "engines": { "node": ">=20" },
+  "dependencies": { "firebase-admin": "^13.5.0" }
 }
