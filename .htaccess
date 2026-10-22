@@ -1,0 +1,5 @@
+Options -Indexes
+RewriteEngine On
+# API handlers are serverless on Vercel/Netlify; this rewrite is for friendly static routes only.
+RewriteRule ^$ index.html [L]
+RewriteRule ^(login|signup|services|dashboard|api-docs|resetpassword|admin)/?$ $1.html [L]
