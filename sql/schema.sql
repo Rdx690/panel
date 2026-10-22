@@ -1,2 +1,2 @@
--- Superseded: this project now uses Firebase Authentication and Realtime Database.
--- Do not run this legacy PostgreSQL/Supabase schema. Configure database.rules.json in Firebase Console instead.
+-- Legacy PostgreSQL schema retired. This project now uses Firebase Authentication and Realtime Database.
+-- Do not run this file. Configure database.rules.json in the Firebase Console instead.
